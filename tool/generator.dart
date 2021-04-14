@@ -41,9 +41,9 @@ void main(List<String> args) {
   final outputFile = File(resolveOutputFile(options['output']));
 
   final input = inputFile.readAsLinesSync();
-  final pciIds = parsePciIds(input);
+  final items = parseLines(input);
 
-  final output = generatePciIds(pciIds);
+  final output = generateDart(items);
   outputFile.writeAsStringSync(output);
 
   print('Generated ${outputFile.path}');
@@ -67,33 +67,32 @@ String resolveOutputFile(String output) {
   return output;
 }
 
-List<PciIdLine> parsePciIds(List<String> lines) {
-  final pciIds = <PciIdLine>[];
+List<PciItem> parseLines(List<String> lines) {
+  final items = <PciItem>[];
   for (final line in lines) {
     if (line.startsWith('C ')) break; // ### TODO: device classes
-    final pciId = PciIdLine.parse(line.trimComment());
-    if (pciId != null) {
-      pciIds.add(pciId);
+    final item = PciItem.parse(line.trimComment());
+    if (item != null) {
+      items.add(item);
     }
   }
-  return pciIds;
+  return items;
 }
 
-String generatePciIds(List<PciIdLine> pciIds) {
-  final vendors = buildVendors(pciIds);
-
+String generateDart(List<PciItem> items) {
+  final vendors = buildVendors(items);
   return kOutputTemplate
       .replaceFirst('{{vendors}}', generateVendorMap(vendors))
       .replaceFirst('{{devices}}', generateDeviceMap(vendors))
       .replaceFirst('{{variables}}', generateVariables(vendors));
 }
 
-List<PciVendor> buildVendors(List<PciIdLine> pciIds) {
+List<PciVendor> buildVendors(List<PciItem> items) {
   final vendors = <PciVendor>[];
   final devices = <PciDevice>[];
   final subsystems = <PciSubsystem>[];
-  PciIdLine? currentVendor;
-  PciIdLine? currentDevice;
+  PciItem? currentVendor;
+  PciItem? currentDevice;
 
   void addCurrentVendor() {
     if (currentVendor == null) return;
@@ -109,22 +108,22 @@ List<PciVendor> buildVendors(List<PciIdLine> pciIds) {
     currentDevice = null;
   }
 
-  for (final pciId in pciIds) {
-    switch (pciId.type) {
-      case PciIdType.vendor:
+  for (final item in items) {
+    switch (item.type) {
+      case PciType.vendor:
         addCurrentDevice();
         addCurrentVendor();
-        currentVendor = pciId;
+        currentVendor = item;
         break;
-      case PciIdType.device:
+      case PciType.device:
         addCurrentDevice();
-        currentDevice = pciId;
+        currentDevice = item;
         break;
-      case PciIdType.subsystem:
-        subsystems.add(pciId.toSubsystem());
+      case PciType.subsystem:
+        subsystems.add(item.toSubsystem());
         break;
       default:
-        throw UnsupportedError(pciId.type.toString());
+        throw UnsupportedError(item.type.toString());
     }
   }
   addCurrentDevice();
@@ -170,12 +169,12 @@ String generateVariables(Iterable<PciVendor> vendors) {
   return lines.join('\n');
 }
 
-extension PciIdInt on int {
+extension PciInt on int {
   String toHex() => toRadixString(16).padLeft(4, '0');
   String formatId() => '0x${toHex()}';
 }
 
-extension PciIdString on String {
+extension PciString on String {
   String trimComment() {
     final hash = indexOf('#');
     if (hash == -1) {
@@ -188,7 +187,7 @@ extension PciIdString on String {
   String escapeQuotes() => replaceAll('\'', '\\\'');
 }
 
-extension PciIdList<T> on List<T> {
+extension PciList<T> on List<T> {
   T? get firstOrNull => getOrNull(0);
   T? get secondOrNull => getOrNull(1);
   T? get lastOrNull => getOrNull(length - 1);
@@ -200,32 +199,32 @@ extension PciIdList<T> on List<T> {
   }
 }
 
-enum PciIdType { vendor, device, subsystem }
+enum PciType { vendor, device, subsystem }
 
-class PciIdLine {
-  final PciIdType type;
+class PciItem {
+  final PciType type;
   final int id;
   final int? subid;
   final String name;
 
-  PciIdLine({
+  PciItem({
     required this.type,
     required this.id,
     this.subid,
     required this.name,
   });
 
-  static PciIdLine? parse(String line) {
+  static PciItem? parse(String line) {
     final trimmed = line.trimComment();
     if (trimmed.isEmpty) return null;
     final indentation = trimmed.indexOf(RegExp(r'[^\t]'));
-    final type = PciIdType.values[indentation];
+    final type = PciType.values[indentation];
     final tokens = trimmed.substring(indentation).split(RegExp(r'  '));
     assert(tokens.isNotEmpty);
     final ids = tokens.first.split(' ');
     final id = int.parse(ids.first, radix: 16);
     final subid = int.tryParse(ids.secondOrNull ?? '', radix: 16);
-    return PciIdLine(type: type, id: id, subid: subid, name: tokens.last);
+    return PciItem(type: type, id: id, subid: subid, name: tokens.last);
   }
 
   PciVendor toVendor(List<PciDevice> devices) {
