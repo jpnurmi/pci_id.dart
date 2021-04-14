@@ -136,7 +136,7 @@ String generateVendorMap(Iterable<PciVendor> vendors) {
   final lines = <String>[];
   lines.add('const _vendors = <int, PciVendor>{');
   for (final vendor in vendors) {
-    lines.add('${vendor.id.formatId()}: ${vendor.formatName()},');
+    lines.add('${vendor.id.print()}: ${vendor.formatKey()},');
   }
   lines.add('};');
   return lines.join('\n');
@@ -146,9 +146,9 @@ String generateDeviceMap(Iterable<PciVendor> vendors) {
   final lines = <String>[];
   lines.add('const _devices = <int, Map<int, PciDevice>>{');
   for (final vendor in vendors) {
-    lines.add('${vendor.id.formatId()}: <int, PciDevice>{');
+    lines.add('${vendor.id.print()}: <int, PciDevice>{');
     for (final device in vendor.devices) {
-      lines.add('${device.id.formatId()}: ${device.formatName(vendor.id)},');
+      lines.add('${device.id.print()}: ${device.formatKey(vendor.id)},');
     }
     lines.add('},');
   }
@@ -171,8 +171,8 @@ String generateVariables(Iterable<PciVendor> vendors) {
 }
 
 extension PciInt on int {
+  String print() => '0x${toHex()}';
   String toHex() => toRadixString(16).padLeft(4, '0');
-  String formatId() => '0x${toHex()}';
 }
 
 extension PciString on String {
@@ -184,8 +184,8 @@ extension PciString on String {
     return substring(0, hash);
   }
 
-  String formatName() => '\'${escapeQuotes()}\'';
-  String escapeQuotes() => replaceAll('\'', '\\\'');
+  String print() => '\'${escape()}\'';
+  String escape() => replaceAll('\'', '\\\'');
 }
 
 extension PciList<T> on List<T> {
@@ -231,41 +231,41 @@ class PciItem {
 }
 
 extension PciVendorFormat on PciVendor {
-  String formatName() => '_vendor_${id.toHex()}';
+  String formatKey() => '_vendor_${id.toHex()}';
 
   String formatValue() {
-    final i = id.formatId();
-    final n = name.formatName();
-    final d = devices.map((device) => device.formatName(id)).join(', ');
+    final i = id.print();
+    final n = name.print();
+    final d = devices.map((device) => device.formatKey(id)).join(', ');
     return 'PciVendor(id: $i, name: $n, devices: <PciDevice>[$d],)';
   }
 
-  String formatVariable() => 'const ${formatName()} = ${formatValue()};';
+  String formatVariable() => 'const ${formatKey()} = ${formatValue()};';
 }
 
 extension PciDeviceFormat on PciDevice {
-  String formatName(int vendorId) {
+  String formatKey(int vendorId) {
     final v = vendorId.toHex();
     final i = id.toHex();
     return '_device_${v}_$i';
   }
 
   String formatValue(int vendorId) {
-    final i = id.formatId();
-    final n = name.formatName();
+    final i = id.print();
+    final n = name.print();
     final s = subsystems
-        .map((subsystem) => subsystem.formatName(vendorId, id))
+        .map((subsystem) => subsystem.formatKey(vendorId, id))
         .join(', ');
     return 'PciDevice(id: $i, name: $n, subsystems: <PciSubsystem>[$s],)';
   }
 
   String formatVariable(int vendorId) {
-    return 'const ${formatName(vendorId)} = ${formatValue(vendorId)};';
+    return 'const ${formatKey(vendorId)} = ${formatValue(vendorId)};';
   }
 }
 
 extension PciSubsystemFormat on PciSubsystem {
-  String formatName(int vendorId, int deviceId) {
+  String formatKey(int vendorId, int deviceId) {
     final v1 = vendorId.toHex();
     final d1 = deviceId.toHex();
     final v2 = this.vendorId.toHex();
@@ -274,13 +274,13 @@ extension PciSubsystemFormat on PciSubsystem {
   }
 
   String formatValue() {
-    final v = vendorId.formatId();
-    final d = deviceId.formatId();
-    final n = name.formatName();
+    final v = vendorId.print();
+    final d = deviceId.print();
+    final n = name.print();
     return 'PciSubsystem(vendorId: $v, deviceId: $d, name: $n,)';
   }
 
   String formatVariable(int vendorId, int deviceId) {
-    return 'const ${formatName(vendorId, deviceId)} = ${formatValue()};';
+    return 'const ${formatKey(vendorId, deviceId)} = ${formatValue()};';
   }
 }
