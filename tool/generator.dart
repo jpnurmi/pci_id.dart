@@ -12,6 +12,12 @@ part of 'pci_id.dart';
 const _vendors = <int, PciVendor>{
 {{vendors}}
 };
+
+const _devices = <int, Map<int, PciDevice>>{
+{{devices}}
+};
+
+{{variables}}
 ''';
 
 void main(List<String> args) {
@@ -78,29 +84,45 @@ List<PciIdLine> parsePciIds(List<String> lines) {
 }
 
 String generatePciIds(List<PciIdLine> pciIds) {
-  final vendors = buildPciVendors(pciIds);
-  final output = formatPciVendors(vendors);
-  return kOutputTemplate.replaceFirst('{{vendors}}', output);
+  final vendors = buildVendors(pciIds);
+
+  return kOutputTemplate
+      .replaceFirst('{{vendors}}', generateVendorMap(vendors))
+      .replaceFirst('{{devices}}', generateDeviceMap(vendors))
+      .replaceFirst('{{variables}}', generateVariables(vendors));
 }
 
-List<PciVendor> buildPciVendors(List<PciIdLine> pciIds) {
+List<PciVendor> buildVendors(List<PciIdLine> pciIds) {
   final vendors = <PciVendor>[];
   final devices = <PciDevice>[];
   final subsystems = <PciSubsystem>[];
-  var vendorPciId;
+  PciIdLine? currentVendor;
+  PciIdLine? currentDevice;
+
+  void addCurrentVendor() {
+    if (currentVendor == null) return;
+    vendors.add(currentVendor!.toVendor(List<PciDevice>.of(devices)));
+    devices.clear();
+    currentVendor = null;
+  }
+
+  void addCurrentDevice() {
+    if (currentDevice == null) return;
+    devices.add(currentDevice!.toDevice(List<PciSubsystem>.of(subsystems)));
+    subsystems.clear();
+    currentDevice = null;
+  }
+
   for (final pciId in pciIds) {
     switch (pciId.type) {
       case PciIdType.vendor:
-        if (vendorPciId != null) {
-          vendors.add(vendorPciId.toVendor(List<PciDevice>.of(devices)));
-          vendorPciId = null;
-          devices.clear();
-        }
-        vendorPciId = pciId;
+        addCurrentDevice();
+        addCurrentVendor();
+        currentVendor = pciId;
         break;
       case PciIdType.device:
-        devices.add(pciId.toDevice(List<PciSubsystem>.of(subsystems)));
-        subsystems.clear();
+        addCurrentDevice();
+        currentDevice = pciId;
         break;
       case PciIdType.subsystem:
         subsystems.add(pciId.toSubsystem());
@@ -109,15 +131,48 @@ List<PciVendor> buildPciVendors(List<PciIdLine> pciIds) {
         throw UnsupportedError(pciId.type.toString());
     }
   }
+  addCurrentDevice();
+  addCurrentVendor();
   return vendors;
 }
 
-String formatPciVendors(List<PciVendor> vendors) {
+String generateVendorMap(Iterable<PciVendor> vendors) {
   final lines = <String>[];
   for (final vendor in vendors) {
-    lines.add('  ${vendor.id}: ${vendor.format()},');
+    lines.add('${vendor.id.formatId()}: ${vendor.formatName()},');
   }
   return lines.join('\n');
+}
+
+String generateDeviceMap(Iterable<PciVendor> vendors) {
+  final lines = <String>[];
+  for (final vendor in vendors) {
+    lines.add('${vendor.id.formatId()}: <int, PciDevice>{');
+    for (final device in vendor.devices) {
+      lines.add('${device.id.formatId()}: ${device.formatName(vendor.id)},');
+    }
+    lines.add('},');
+  }
+  return lines.join('\n');
+}
+
+String generateVariables(Iterable<PciVendor> vendors) {
+  final lines = <String>[];
+  for (final vendor in vendors) {
+    for (final device in vendor.devices) {
+      for (final subsystem in device.subsystems) {
+        lines.add(subsystem.formatVariable(vendor.id, device.id));
+      }
+      lines.add(device.formatVariable(vendor.id));
+    }
+    lines.add(vendor.formatVariable());
+  }
+  return lines.join('\n');
+}
+
+extension PciIdInt on int {
+  String toHex() => toRadixString(16).padLeft(4, '0');
+  String formatId() => '0x${toHex()}';
 }
 
 extension PciIdString on String {
@@ -129,6 +184,7 @@ extension PciIdString on String {
     return substring(0, hash);
   }
 
+  String formatName() => '\'${escapeQuotes()}\'';
   String escapeQuotes() => replaceAll('\'', '\\\'');
 }
 
@@ -186,24 +242,56 @@ class PciIdLine {
 }
 
 extension PciVendorFormat on PciVendor {
-  String format() {
-    final n = name.escapeQuotes();
-    final d = devices.map((device) => device.format()).join(', ');
-    return 'PciVendor(id: $id, name: \'$n\', devices: <PciDevice>[$d],)';
+  String formatName() => 'vendor_${id.toHex()}';
+
+  String formatValue() {
+    final i = id.formatId();
+    final n = name.formatName();
+    final d = devices.map((device) => device.formatName(id)).join(', ');
+    return 'PciVendor(id: $i, name: $n, devices: <PciDevice>[$d],)';
   }
+
+  String formatVariable() => 'const ${formatName()} = ${formatValue()};';
 }
 
 extension PciDeviceFormat on PciDevice {
-  String format() {
-    final n = name.escapeQuotes();
-    final s = subsystems.map((subsystem) => subsystem.format()).join(', ');
-    return 'PciDevice(id: $id, name: \'$n\', subsystems: [$s],)';
+  String formatName(int vendorId) {
+    final v = vendorId.toHex();
+    final i = id.toHex();
+    return 'device_${v}_$i';
+  }
+
+  String formatValue(int vendorId) {
+    final i = id.formatId();
+    final n = name.formatName();
+    final s = subsystems
+        .map((subsystem) => subsystem.formatName(vendorId, id))
+        .join(', ');
+    return 'PciDevice(id: $i, name: $n, subsystems: <PciSubsystem>[$s],)';
+  }
+
+  String formatVariable(int vendorId) {
+    return 'const ${formatName(vendorId)} = ${formatValue(vendorId)};';
   }
 }
 
 extension PciSubsystemFormat on PciSubsystem {
-  String format() {
-    final n = name.escapeQuotes();
-    return 'PciSubsystem(vendorId: $vendorId, deviceId: $deviceId, name: \'$n\',)';
+  String formatName(int vendorId, int deviceId) {
+    final v1 = vendorId.toHex();
+    final d1 = deviceId.toHex();
+    final v2 = this.vendorId.toHex();
+    final d2 = this.deviceId.toHex();
+    return 'subsystem_${v1}_${d1}_${v2}_$d2';
+  }
+
+  String formatValue() {
+    final v = vendorId.formatId();
+    final d = deviceId.formatId();
+    final n = name.formatName();
+    return 'PciSubsystem(vendorId: $v, deviceId: $d, name: $n,)';
+  }
+
+  String formatVariable(int vendorId, int deviceId) {
+    return 'const ${formatName(vendorId, deviceId)} = ${formatValue()};';
   }
 }

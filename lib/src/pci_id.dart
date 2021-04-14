@@ -3,8 +3,14 @@ import 'package:equatable/equatable.dart';
 part 'pci_id.g.dart';
 
 class PciId {
-  static PciVendor? findVendor(int id) => _vendors[id];
   static Iterable<PciVendor> get allVendors => _vendors.values;
+  static PciVendor? lookupVendor(int id) {
+    return _vendors[id];
+  }
+
+  static PciDevice? lookupDevice(int id, {required int vendorId}) {
+    return _devices[vendorId]?[id];
+  }
 }
 
 class PciVendor extends Equatable {
