@@ -6,6 +6,24 @@ import 'package:pci_id/src/pci_types.dart';
 
 const String kDefaultOutputFileName = 'pci_id.g.dart';
 
+const kVendorMapTemplate = '''
+const _vendors = <int, PciVendor>{
+{{entries}}
+};
+''';
+
+const kDeviceMapTemplate = '''
+const _devices = <int, Map<int, PciDevice>>{
+{{entries}}
+};
+''';
+
+const kDeviceMapEntryTemplate = '''
+{{id}}: <int, PciDevice>{
+  {{entries}}
+},
+''';
+
 const String kOutputTemplate = '''
 part of 'pci_id.dart';
 
@@ -134,26 +152,23 @@ Iterable<PciVendor> buildVendors(Iterable<PciItem> items) {
 
 String generateVendorMap(Iterable<PciVendor> vendors) {
   final lines = <String>[];
-  lines.add('const _vendors = <int, PciVendor>{');
   for (final vendor in vendors) {
-    lines.add('${vendor.id.print()}: ${vendor.formatKey()},');
+    lines.add(vendor.formatMapEntry());
   }
-  lines.add('};');
-  return lines.join('\n');
+  return kVendorMapTemplate.replaceFirst('{{entries}}', lines.join('\n'));
 }
 
 String generateDeviceMap(Iterable<PciVendor> vendors) {
   final lines = <String>[];
-  lines.add('const _devices = <int, Map<int, PciDevice>>{');
   for (final vendor in vendors) {
-    lines.add('${vendor.id.print()}: <int, PciDevice>{');
-    for (final device in vendor.devices) {
-      lines.add('${device.id.print()}: ${device.formatKey(vendor.id)},');
-    }
-    lines.add('},');
+    final entries = vendor.devices.map<String>(
+      (device) => device.formatMapEntry(vendor.id),
+    );
+    lines.add(kDeviceMapEntryTemplate
+        .replaceFirst('{{id}}', vendor.id.print())
+        .replaceFirst('{{entries}}', entries.join('\n')));
   }
-  lines.add('};');
-  return lines.join('\n');
+  return kDeviceMapTemplate.replaceFirst('{{entries}}', lines.join('\n'));
 }
 
 String generateVariables(Iterable<PciVendor> vendors) {
@@ -241,6 +256,8 @@ extension PciVendorFormat on PciVendor {
   }
 
   String formatVariable() => 'const ${formatKey()} = ${formatValue()};';
+
+  String formatMapEntry() => '${id.print()}: ${formatKey()},';
 }
 
 extension PciDeviceFormat on PciDevice {
@@ -261,6 +278,10 @@ extension PciDeviceFormat on PciDevice {
 
   String formatVariable(int vendorId) {
     return 'const ${formatKey(vendorId)} = ${formatValue(vendorId)};';
+  }
+
+  String formatMapEntry(int vendorId) {
+    return '${id.print()}: ${formatKey(vendorId)},';
   }
 }
 
