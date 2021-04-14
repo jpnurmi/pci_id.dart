@@ -40,8 +40,8 @@ void main(List<String> args) {
 
   final outputFile = File(resolveOutputFile(options['output']));
 
-  final input = inputFile.readAsLinesSync();
-  final items = parseLines(input);
+  final lines = inputFile.readAsLinesSync();
+  final items = parseLines(lines.where((l) => l.trimComment().isNotEmpty));
 
   final output = generateDart(items);
   outputFile.writeAsStringSync(output);
@@ -67,11 +67,11 @@ String resolveOutputFile(String output) {
   return output;
 }
 
-List<PciItem> parseLines(List<String> lines) {
+Iterable<PciItem> parseLines(Iterable<String> lines) {
   final items = <PciItem>[];
   for (final line in lines) {
     if (line.startsWith('C ')) break; // ### TODO: device classes
-    final item = PciItem.parse(line.trimComment());
+    final item = PciItem.parse(line);
     if (item != null) {
       items.add(item);
     }
@@ -79,7 +79,7 @@ List<PciItem> parseLines(List<String> lines) {
   return items;
 }
 
-String generateDart(List<PciItem> items) {
+String generateDart(Iterable<PciItem> items) {
   final vendors = buildVendors(items);
   return kOutputTemplate
       .replaceFirst('{{vendors}}', generateVendorMap(vendors))
@@ -87,7 +87,7 @@ String generateDart(List<PciItem> items) {
       .replaceFirst('{{variables}}', generateVariables(vendors));
 }
 
-List<PciVendor> buildVendors(List<PciItem> items) {
+Iterable<PciVendor> buildVendors(Iterable<PciItem> items) {
   final vendors = <PciVendor>[];
   final devices = <PciDevice>[];
   final subsystems = <PciSubsystem>[];
@@ -215,11 +215,9 @@ class PciItem {
   });
 
   static PciItem? parse(String line) {
-    final trimmed = line.trimComment();
-    if (trimmed.isEmpty) return null;
-    final indentation = trimmed.indexOf(RegExp(r'[^\t]'));
+    final indentation = line.indexOf(RegExp(r'[^\t]'));
     final type = PciType.values[indentation];
-    final tokens = trimmed.substring(indentation).split(RegExp(r'  '));
+    final tokens = line.substring(indentation).split(RegExp(r'  '));
     assert(tokens.isNotEmpty);
     final ids = tokens.first.split(' ');
     final id = int.parse(ids.first, radix: 16);
@@ -227,11 +225,11 @@ class PciItem {
     return PciItem(type: type, id: id, subid: subid, name: tokens.last);
   }
 
-  PciVendor toVendor(List<PciDevice> devices) {
+  PciVendor toVendor(Iterable<PciDevice> devices) {
     return PciVendor(id: id, name: name, devices: devices);
   }
 
-  PciDevice toDevice(List<PciSubsystem> subsystems) {
+  PciDevice toDevice(Iterable<PciSubsystem> subsystems) {
     return PciDevice(id: id, name: name, subsystems: subsystems);
   }
 
