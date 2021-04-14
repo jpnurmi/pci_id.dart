@@ -1,19 +1,7 @@
-A library for Dart developers.
+# PCI ID
 
-## Usage
+Re-generate:
 
-A simple usage example:
-
-```dart
-import 'package:pci_id/pci_id.dart';
-
-main() {
-  var awesome = new Awesome();
-}
 ```
-
-## Features and bugs
-
-Please file feature requests and bugs at the [issue tracker][tracker].
-
-[tracker]: http://example.com/issues/replaceme
+dart run tool/generator.dart data/pci.ids -o lib/src/pci_id.g.dart
+```
