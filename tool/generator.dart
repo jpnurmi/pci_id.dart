@@ -242,7 +242,7 @@ class PciIdLine {
 }
 
 extension PciVendorFormat on PciVendor {
-  String formatName() => 'vendor_${id.toHex()}';
+  String formatName() => '_vendor_${id.toHex()}';
 
   String formatValue() {
     final i = id.formatId();
@@ -258,7 +258,7 @@ extension PciDeviceFormat on PciDevice {
   String formatName(int vendorId) {
     final v = vendorId.toHex();
     final i = id.toHex();
-    return 'device_${v}_$i';
+    return '_device_${v}_$i';
   }
 
   String formatValue(int vendorId) {
@@ -281,7 +281,7 @@ extension PciSubsystemFormat on PciSubsystem {
     final d1 = deviceId.toHex();
     final v2 = this.vendorId.toHex();
     final d2 = this.deviceId.toHex();
-    return 'subsystem_${v1}_${d1}_${v2}_$d2';
+    return '_subsystem_${v1}_${d1}_${v2}_$d2';
   }
 
   String formatValue() {
