@@ -9,13 +9,9 @@ const String kDefaultOutputFileName = 'pci_id.g.dart';
 const String kOutputTemplate = '''
 part of 'pci_id.dart';
 
-const _vendors = <int, PciVendor>{
 {{vendors}}
-};
 
-const _devices = <int, Map<int, PciDevice>>{
 {{devices}}
-};
 
 {{variables}}
 ''';
@@ -138,14 +134,17 @@ List<PciVendor> buildVendors(List<PciIdLine> pciIds) {
 
 String generateVendorMap(Iterable<PciVendor> vendors) {
   final lines = <String>[];
+  lines.add('const _vendors = <int, PciVendor>{');
   for (final vendor in vendors) {
     lines.add('${vendor.id.formatId()}: ${vendor.formatName()},');
   }
+  lines.add('};');
   return lines.join('\n');
 }
 
 String generateDeviceMap(Iterable<PciVendor> vendors) {
   final lines = <String>[];
+  lines.add('const _devices = <int, Map<int, PciDevice>>{');
   for (final vendor in vendors) {
     lines.add('${vendor.id.formatId()}: <int, PciDevice>{');
     for (final device in vendor.devices) {
@@ -153,6 +152,7 @@ String generateDeviceMap(Iterable<PciVendor> vendors) {
     }
     lines.add('},');
   }
+  lines.add('};');
   return lines.join('\n');
 }
 
