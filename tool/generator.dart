@@ -40,8 +40,8 @@ void main(List<String> args) {
 
   final outputFile = File(resolveOutputFile(options['output']));
 
-  final lines = inputFile.readAsLinesSync();
-  final items = parseLines(lines.where((l) => l.trimComment().isNotEmpty));
+  final lines = filterLines(inputFile.readAsLinesSync());
+  final items = parseLines(lines);
 
   final output = generateDart(items);
   outputFile.writeAsStringSync(output);
@@ -67,14 +67,15 @@ String resolveOutputFile(String output) {
   return output;
 }
 
+Iterable<String> filterLines(Iterable<String> lines) {
+  return lines.map((l) => l.trimComment()).where((l) => l.isNotEmpty);
+}
+
 Iterable<PciItem> parseLines(Iterable<String> lines) {
   final items = <PciItem>[];
   for (final line in lines) {
     if (line.startsWith('C ')) break; // ### TODO: device classes
-    final item = PciItem.parse(line);
-    if (item != null) {
-      items.add(item);
-    }
+    items.add(PciItem(line));
   }
   return items;
 }
@@ -202,28 +203,19 @@ extension PciList<T> on List<T> {
 enum PciType { vendor, device, subsystem }
 
 class PciItem {
-  final PciType type;
-  final int id;
-  final int? subid;
-  final String name;
+  final String line;
 
-  PciItem({
-    required this.type,
-    required this.id,
-    this.subid,
-    required this.name,
-  });
+  PciItem(this.line);
 
-  static PciItem? parse(String line) {
-    final indentation = line.indexOf(RegExp(r'[^\t]'));
-    final type = PciType.values[indentation];
-    final tokens = line.substring(indentation).split(RegExp(r'  '));
-    assert(tokens.isNotEmpty);
-    final ids = tokens.first.split(' ');
-    final id = int.parse(ids.first, radix: 16);
-    final subid = int.tryParse(ids.secondOrNull ?? '', radix: 16);
-    return PciItem(type: type, id: id, subid: subid, name: tokens.last);
-  }
+  PciType get type => PciType.values[indentation];
+  int get id => int.parse(ids.first, radix: 16);
+  int? get subid => int.tryParse(ids.secondOrNull ?? '', radix: 16);
+  String get name => tokens.last;
+
+  int get indentation => line.indexOf(RegExp(r'[^\t]'));
+  String get content => line.substring(indentation);
+  List<String> get tokens => content.split('  ');
+  List<String> get ids => tokens.first.split(' ');
 
   PciVendor toVendor(Iterable<PciDevice> devices) {
     return PciVendor(id: id, name: name, devices: devices);
