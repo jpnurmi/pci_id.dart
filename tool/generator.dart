@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
-import 'package:pci_id/pci_id.dart';
+import 'package:pci_id/src/pci_types.dart';
 
 const String kDefaultOutputFileName = 'pci_id.g.dart';
 
