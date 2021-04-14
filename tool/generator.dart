@@ -9,11 +9,11 @@ const String kDefaultOutputFileName = 'pci_id.g.dart';
 const String kOutputTemplate = '''
 part of 'pci_id.dart';
 
+{{variables}}
+
 {{vendors}}
 
 {{devices}}
-
-{{variables}}
 ''';
 
 void main(List<String> args) {
@@ -159,13 +159,13 @@ String generateDeviceMap(Iterable<PciVendor> vendors) {
 String generateVariables(Iterable<PciVendor> vendors) {
   final lines = <String>[];
   for (final vendor in vendors) {
+    lines.add(vendor.formatVariable());
     for (final device in vendor.devices) {
+      lines.add(device.formatVariable(vendor.id));
       for (final subsystem in device.subsystems) {
         lines.add(subsystem.formatVariable(vendor.id, device.id));
       }
-      lines.add(device.formatVariable(vendor.id));
     }
-    lines.add(vendor.formatVariable());
   }
   return lines.join('\n');
 }
