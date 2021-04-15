@@ -11,19 +11,19 @@ import 'src/parser.dart';
 
 const String kDefaultOutputFileName = 'pci_id.g.dart';
 
-const kVendorMapTemplate = '''
+const kVendorIndexTemplate = '''
 const _vendors = <int, PciVendor>{
 {{entries}}
 };
 ''';
 
-const kDeviceMapTemplate = '''
+const kDeviceIndexTemplate = '''
 const _devices = <int, Map<int, PciDevice>>{
 {{entries}}
 };
 ''';
 
-const kDeviceMapEntryTemplate = '''
+const kDeviceEntryTemplate = '''
 {{id}}: <int, PciDevice>{
   {{entries}}
 },
@@ -34,9 +34,7 @@ part of 'pci_id.dart';
 
 {{variables}}
 
-{{vendors}}
-
-{{devices}}
+{{index}}
 ''';
 
 void main(List<String> args) {
@@ -93,33 +91,46 @@ String resolveOutputFile(String output) {
 String generateDart(Iterable<PciItem> items) {
   final builder = PciBuilder.build(items);
   return kOutputTemplate
-      .replaceFirst('{{vendors}}', generateVendorMap(builder.vendors))
-      .replaceFirst('{{devices}}', generateDeviceMap(builder.vendors))
-      .replaceFirst('{{variables}}', generateVariables(builder.vendors));
+      .replaceFirst('{{index}}', generateIndex(builder))
+      .replaceFirst('{{variables}}', generateVariables(builder));
 }
 
-String generateVendorMap(Iterable<PciVendor> vendors) {
+String generateIndex(PciBuilder builder) {
+  final lines = <String>[];
+  lines.add(generateVendorIndex(builder.vendors));
+  lines.add(generateDeviceIndex(builder.vendors));
+  return lines.join('\n');
+}
+
+String generateVendorIndex(Iterable<PciVendor> vendors) {
   final lines = <String>[];
   for (final vendor in vendors) {
     lines.add(vendor.formatMapEntry());
   }
-  return kVendorMapTemplate.replaceFirst('{{entries}}', lines.join('\n'));
+  return kVendorIndexTemplate.replaceFirst('{{entries}}', lines.join('\n'));
 }
 
-String generateDeviceMap(Iterable<PciVendor> vendors) {
+String generateDeviceIndex(Iterable<PciVendor> vendors) {
   final lines = <String>[];
   for (final vendor in vendors) {
     final entries = vendor.devices.map<String>(
       (device) => device.formatMapEntry(vendor.id),
     );
-    lines.add(kDeviceMapEntryTemplate
+    lines.add(kDeviceEntryTemplate
         .replaceFirst('{{id}}', vendor.id.print())
         .replaceFirst('{{entries}}', entries.join('\n')));
   }
-  return kDeviceMapTemplate.replaceFirst('{{entries}}', lines.join('\n'));
+  return kDeviceIndexTemplate.replaceFirst('{{entries}}', lines.join('\n'));
 }
 
-String generateVariables(Iterable<PciVendor> vendors) {
+String generateVariables(PciBuilder builder) {
+  final lines = <String>[];
+  lines.addAll(generateVendorVariables(builder.vendors));
+  lines.addAll(generateDeviceClassVariables(builder.deviceClasses));
+  return lines.join('\n');
+}
+
+List<String> generateVendorVariables(Iterable<PciVendor> vendors) {
   final lines = <String>[];
   for (final vendor in vendors) {
     lines.add(vendor.formatVariable());
@@ -130,5 +141,23 @@ String generateVariables(Iterable<PciVendor> vendors) {
       }
     }
   }
-  return lines.join('\n');
+  return lines;
+}
+
+List<String> generateDeviceClassVariables(
+  Iterable<PciDeviceClass> deviceClasses,
+) {
+  final lines = <String>[];
+  for (final deviceClass in deviceClasses) {
+    lines.add(deviceClass.formatVariable());
+    for (final subclass in deviceClass.subclasses) {
+      lines.add(subclass.formatVariable(deviceClass.id));
+      for (final programmingInterface in subclass.programmingInterfaces) {
+        lines.add(
+          programmingInterface.formatVariable(deviceClass.id, subclass.id),
+        );
+      }
+    }
+  }
+  return lines;
 }
