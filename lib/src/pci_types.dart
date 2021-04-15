@@ -59,7 +59,7 @@ class PciDeviceClass extends Equatable {
   final String name;
   final Iterable<PciSubclass> subclasses;
 
-  PciDeviceClass({
+  const PciDeviceClass({
     required this.id,
     required this.name,
     required this.subclasses,
@@ -77,7 +77,7 @@ class PciSubclass extends Equatable {
   final String name;
   final Iterable<PciProgrammingInterface> programmingInterfaces;
 
-  PciSubclass({
+  const PciSubclass({
     required this.id,
     required this.name,
     required this.programmingInterfaces,
@@ -94,7 +94,7 @@ class PciProgrammingInterface extends Equatable {
   final int id;
   final String name;
 
-  PciProgrammingInterface({
+  const PciProgrammingInterface({
     required this.id,
     required this.name,
   });
