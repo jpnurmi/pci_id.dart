@@ -17,4 +17,20 @@ void main() {
     expect(device.name, equals('PCIe Video Bridge'));
     expect(device.subsystems, hasLength(2));
   });
+
+  test('lookup device class', () {
+    final deviceClass = PciId.lookupDeviceClass(0x03);
+    expect(deviceClass, isNotNull);
+    expect(deviceClass!.id, equals(0x03));
+    expect(deviceClass.name, equals('Display controller'));
+    expect(deviceClass.subclasses, hasLength(4));
+  });
+
+  test('lookup subclass', () {
+    final subclass = PciId.lookupSubclass(0x00, deviceClassId: 0x03);
+    expect(subclass, isNotNull);
+    expect(subclass!.id, equals(0x00));
+    expect(subclass.name, equals('VGA compatible controller'));
+    expect(subclass.programmingInterfaces, hasLength(2));
+  });
 }
