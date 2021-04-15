@@ -1,10 +1,10 @@
 import 'item.dart';
 
 extension PciVendorFormatter on PciVendor {
-  String formatKey() => '_vendor_${id.toHex()}';
+  String formatKey() => '_vendor_${id.toHex(4)}';
 
   String formatValue() {
-    final i = id.print();
+    final i = id.print(4);
     final n = name.print();
     final d = devices.map((device) => device.formatKey(id)).join(', ');
     return 'PciVendor(id: $i, name: $n, devices: <PciDevice>[$d],)';
@@ -12,18 +12,18 @@ extension PciVendorFormatter on PciVendor {
 
   String formatVariable() => 'const ${formatKey()} = ${formatValue()};';
 
-  String formatMapEntry() => '${id.print()}: ${formatKey()},';
+  String formatMapEntry() => '${id.print(4)}: ${formatKey()},';
 }
 
 extension PciDeviceFormatter on PciDevice {
   String formatKey(int vendorId) {
-    final v = vendorId.toHex();
-    final i = id.toHex();
+    final v = vendorId.toHex(4);
+    final i = id.toHex(4);
     return '_device_${v}_$i';
   }
 
   String formatValue(int vendorId) {
-    final i = id.print();
+    final i = id.print(4);
     final n = name.print();
     final s = subsystems
         .map((subsystem) => subsystem.formatKey(vendorId, id))
@@ -36,22 +36,22 @@ extension PciDeviceFormatter on PciDevice {
   }
 
   String formatMapEntry(int vendorId) {
-    return '${id.print()}: ${formatKey(vendorId)},';
+    return '${id.print(4)}: ${formatKey(vendorId)},';
   }
 }
 
 extension PciSubsystemFormatter on PciSubsystem {
   String formatKey(int vendorId, int deviceId) {
-    final v1 = vendorId.toHex();
-    final d1 = deviceId.toHex();
-    final v2 = this.vendorId.toHex();
-    final d2 = this.deviceId.toHex();
+    final v1 = vendorId.toHex(4);
+    final d1 = deviceId.toHex(4);
+    final v2 = this.vendorId.toHex(4);
+    final d2 = this.deviceId.toHex(4);
     return '_subsystem_${v1}_${d1}_${v2}_$d2';
   }
 
   String formatValue() {
-    final v = vendorId.print();
-    final d = deviceId.print();
+    final v = vendorId.print(4);
+    final d = deviceId.print(4);
     final n = name.print();
     return 'PciSubsystem(vendorId: $v, deviceId: $d, name: $n,)';
   }
@@ -62,10 +62,10 @@ extension PciSubsystemFormatter on PciSubsystem {
 }
 
 extension PciDeviceClassFormatter on PciDeviceClass {
-  String formatKey() => '_device_class_${id.toHex()}';
+  String formatKey() => '_device_class_${id.toHex(2)}';
 
   String formatValue() {
-    final i = id.print();
+    final i = id.print(2);
     final n = name.print();
     final s = subclasses.map((subclass) => subclass.formatKey(id)).join(', ');
     return 'PciDeviceClass(id: $i, name: $n, subclasses: <PciSubclass>[$s],)';
@@ -73,18 +73,18 @@ extension PciDeviceClassFormatter on PciDeviceClass {
 
   String formatVariable() => 'const ${formatKey()} = ${formatValue()};';
 
-  String formatMapEntry() => '${id.print()}: ${formatKey()},';
+  String formatMapEntry() => '${id.print(2)}: ${formatKey()},';
 }
 
 extension PciSubclassFormatter on PciSubclass {
   String formatKey(int deviceClassId) {
-    final d = deviceClassId.toHex();
-    final i = id.toHex();
+    final d = deviceClassId.toHex(2);
+    final i = id.toHex(2);
     return '_subclass_${d}_$i';
   }
 
   String formatValue(int deviceClassId) {
-    final i = id.print();
+    final i = id.print(2);
     final n = name.print();
     final p = programmingInterfaces
         .map((pi) => pi.formatKey(deviceClassId, id))
@@ -97,20 +97,20 @@ extension PciSubclassFormatter on PciSubclass {
   }
 
   String formatMapEntry(int deviceClassId) {
-    return '${id.print()}: ${formatKey(deviceClassId)},';
+    return '${id.print(2)}: ${formatKey(deviceClassId)},';
   }
 }
 
 extension PciProgrammingInterfaceFormatter on PciProgrammingInterface {
   String formatKey(int deviceClassId, int subclassId) {
-    final d = deviceClassId.toHex();
-    final s = subclassId.toHex();
-    final i = id.toHex();
+    final d = deviceClassId.toHex(2);
+    final s = subclassId.toHex(2);
+    final i = id.toHex(2);
     return '_programming_interface_${d}_${s}_$i';
   }
 
   String formatValue() {
-    final i = id.print();
+    final i = id.print(2);
     final n = name.print();
     return 'PciProgrammingInterface(id: $i, name: $n,)';
   }
@@ -121,8 +121,8 @@ extension PciProgrammingInterfaceFormatter on PciProgrammingInterface {
 }
 
 extension PciIntFormatter on int {
-  String print() => '0x${toHex()}';
-  String toHex() => toRadixString(16).padLeft(4, '0');
+  String print(int length) => '0x${toHex(length)}';
+  String toHex(int length) => toRadixString(16).padLeft(length, '0');
 }
 
 extension PciStringFormatter on String {

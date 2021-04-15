@@ -116,7 +116,7 @@ String generateDeviceIndex(Iterable<PciVendor> vendors) {
       (device) => device.formatMapEntry(vendor.id),
     );
     lines.add(kEntryTemplate
-        .replaceFirst('{{id}}', vendor.id.print())
+        .replaceFirst('{{id}}', vendor.id.print(4))
         .replaceFirst('{{type}}', 'PciDevice')
         .replaceFirst('{{entries}}', entries.join('\n')));
   }
@@ -151,7 +151,7 @@ String generateSubclassIndex(Iterable<PciDeviceClass> deviceClasses) {
       (subclass) => subclass.formatMapEntry(deviceClass.id),
     );
     lines.add(kEntryTemplate
-        .replaceFirst('{{id}}', deviceClass.id.print())
+        .replaceFirst('{{id}}', deviceClass.id.print(2))
         .replaceFirst('{{type}}', 'PciSubclass')
         .replaceFirst('{{entries}}', entries.join('\n')));
   }
