@@ -1,4 +1,3 @@
-import 'formatter.dart';
 import 'item.dart';
 
 class PciBuilder {

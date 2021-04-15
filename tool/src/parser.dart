@@ -3,7 +3,7 @@ import 'item.dart';
 class PciParser {
   Iterable<PciItem> parse(Iterable<String> lines) {
     for (final line in lines) {
-      final trimmed = line.trimComment();
+      final trimmed = line.removeComment();
       if (trimmed.isNotEmpty) {
         final item = _parseLine(trimmed);
         _type = item.type;
@@ -44,7 +44,7 @@ class PciParser {
 }
 
 extension PciComment on String {
-  String trimComment() {
+  String removeComment() {
     final hash = indexOf('#');
     if (hash == -1) {
       return this;
