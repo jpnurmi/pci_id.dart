@@ -11,20 +11,14 @@ import 'src/parser.dart';
 
 const String kDefaultOutputFileName = 'pci_id.g.dart';
 
-const kVendorIndexTemplate = '''
-const _vendors = <int, PciVendor>{
-{{entries}}
+const kIndexTemplate = '''
+const {{variable}} = <int, {{type}}>{
+  {{entries}}
 };
 ''';
 
-const kDeviceIndexTemplate = '''
-const _devices = <int, Map<int, PciDevice>>{
-{{entries}}
-};
-''';
-
-const kDeviceEntryTemplate = '''
-{{id}}: <int, PciDevice>{
+const kEntryTemplate = '''
+{{id}}: <int, {{type}}>{
   {{entries}}
 },
 ''';
@@ -107,7 +101,10 @@ String generateVendorIndex(Iterable<PciVendor> vendors) {
   for (final vendor in vendors) {
     lines.add(vendor.formatMapEntry());
   }
-  return kVendorIndexTemplate.replaceFirst('{{entries}}', lines.join('\n'));
+  return kIndexTemplate
+      .replaceFirst('{{type}}', 'PciVendor')
+      .replaceFirst('{{variable}}', '_vendors')
+      .replaceFirst('{{entries}}', lines.join('\n'));
 }
 
 String generateDeviceIndex(Iterable<PciVendor> vendors) {
@@ -116,11 +113,15 @@ String generateDeviceIndex(Iterable<PciVendor> vendors) {
     final entries = vendor.devices.map<String>(
       (device) => device.formatMapEntry(vendor.id),
     );
-    lines.add(kDeviceEntryTemplate
+    lines.add(kEntryTemplate
         .replaceFirst('{{id}}', vendor.id.print())
+        .replaceFirst('{{type}}', 'PciDevice')
         .replaceFirst('{{entries}}', entries.join('\n')));
   }
-  return kDeviceIndexTemplate.replaceFirst('{{entries}}', lines.join('\n'));
+  return kIndexTemplate
+      .replaceFirst('{{type}}', 'Map<int, PciDevice>')
+      .replaceFirst('{{variable}}', '_devices')
+      .replaceFirst('{{entries}}', lines.join('\n'));
 }
 
 String generateVariables(PciBuilder builder) {
