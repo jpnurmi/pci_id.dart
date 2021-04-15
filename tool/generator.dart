@@ -58,8 +58,8 @@ void main(List<String> args) {
 
   final outputFile = File(resolveOutputFile(options['output']));
 
-  final lines = filterLines(inputFile.readAsLinesSync());
-  final items = parseLines(lines);
+  final lines = inputFile.readAsLinesSync();
+  final items = PciParser().parseLines(lines);
 
   final output = generateDart(items);
   outputFile.writeAsStringSync(output);
@@ -85,17 +85,34 @@ String resolveOutputFile(String output) {
   return output;
 }
 
-Iterable<String> filterLines(Iterable<String> lines) {
-  return lines.map((l) => l.trimComment()).where((l) => l.isNotEmpty);
-}
-
-Iterable<PciItem> parseLines(Iterable<String> lines) {
-  final items = <PciItem>[];
-  for (final line in lines) {
-    if (line.startsWith('C ')) break; // ### TODO: device classes
-    items.add(PciItem(line));
+class PciParser {
+  Iterable<PciItem> parseLines(Iterable<String> lines) {
+    for (final line in lines) {
+      if (line.startsWith('C ')) break; // ### TODO: device classes
+      final trimmed = line.trimComment();
+      if (trimmed.isNotEmpty) {
+        final item = _parseLine(trimmed);
+        _items.add(item);
+      }
+    }
+    return _items;
   }
-  return items;
+
+  PciItem _parseLine(String line) {
+    final indentation = line.indexOf(RegExp(r'[^\t]'));
+    switch (indentation) {
+      case 0:
+        return PciItem.vendor(line.trim());
+      case 1:
+        return PciItem.device(line.trim());
+      case 2:
+        return PciItem.subsystem(line.trim());
+      default:
+        throw UnsupportedError('Malformed pci.ids');
+    }
+  }
+
+  final _items = <PciItem>[];
 }
 
 String generateDart(Iterable<PciItem> items) {
@@ -219,17 +236,21 @@ enum PciType { vendor, device, subsystem }
 
 class PciItem {
   final String line;
+  final PciType type;
 
-  PciItem(this.line);
+  PciItem.vendor(this.line) : type = PciType.vendor;
+  PciItem.device(this.line) : type = PciType.device;
+  PciItem.subsystem(this.line) : type = PciType.subsystem {
+    if (subid == null) {
+      print(line);
+    }
+  }
 
-  PciType get type => PciType.values[indentation];
   int get id => int.parse(ids.first, radix: 16);
   int? get subid => int.tryParse(ids.secondOrNull ?? '', radix: 16);
   String get name => tokens.last;
 
-  int get indentation => line.indexOf(RegExp(r'[^\t]'));
-  String get content => line.substring(indentation);
-  List<String> get tokens => content.split('  ');
+  List<String> get tokens => line.split('  ');
   List<String> get ids => tokens.first.split(' ');
 
   PciVendor toVendor(Iterable<PciDevice> devices) {
