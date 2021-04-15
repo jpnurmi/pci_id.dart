@@ -6,33 +6,35 @@ class PciBuilder {
 
     final devices = <PciDevice>[];
     final subsystems = <PciSubsystem>[];
-    PciItem? currentVendor;
-    PciItem? currentDevice;
 
-    void addCurrentVendor() {
-      if (currentVendor == null) return;
-      builder.vendors.add(currentVendor!.toVendor(List<PciDevice>.of(devices)));
+    final vendorStack = <PciItem>[];
+    void pushVendor(PciItem item) => vendorStack.add(item);
+    void popVendor() {
+      if (vendorStack.isEmpty) return;
+      final item = vendorStack.removeLast();
+      builder.vendors.add(item.toVendor(List<PciDevice>.of(devices)));
       devices.clear();
-      currentVendor = null;
     }
 
-    void addCurrentDevice() {
-      if (currentDevice == null) return;
-      devices.add(currentDevice!.toDevice(List<PciSubsystem>.of(subsystems)));
+    final deviceStack = <PciItem>[];
+    void pushDevice(PciItem item) => deviceStack.add(item);
+    void popDevice() {
+      if (deviceStack.isEmpty) return;
+      final item = deviceStack.removeLast();
+      devices.add(item.toDevice(List<PciSubsystem>.of(subsystems)));
       subsystems.clear();
-      currentDevice = null;
     }
 
     for (final item in items) {
       switch (item.type) {
         case PciType.vendor:
-          addCurrentDevice();
-          addCurrentVendor();
-          currentVendor = item;
+          popDevice();
+          popVendor();
+          pushVendor(item);
           break;
         case PciType.device:
-          addCurrentDevice();
-          currentDevice = item;
+          popDevice();
+          pushDevice(item);
           break;
         case PciType.subsystem:
           subsystems.add(item.toSubsystem());
@@ -50,8 +52,8 @@ class PciBuilder {
           throw UnsupportedError(item.type.toString());
       }
     }
-    addCurrentDevice();
-    addCurrentVendor();
+    popDevice();
+    popVendor();
     return builder;
   }
 
