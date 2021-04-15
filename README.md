@@ -4,6 +4,7 @@
 [![license: BSD](https://img.shields.io/badge/license-BSD-yellow.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![style: lint](https://img.shields.io/badge/style-lint-4BC0F5.svg)](https://pub.dev/packages/lint)
 ![CI](https://github.com/jpnurmi/pci_id.dart/workflows/CI/badge.svg)
+[![codecov](https://codecov.io/gh/jpnurmi/pci_id.dart/branch/main/graph/badge.svg)](https://codecov.io/gh/jpnurmi/pci_id.dart)
 
 A repository of all known ID's used in PCI devices: ID's of vendors,
 devices, subsystems and device classes. This package can be utilized

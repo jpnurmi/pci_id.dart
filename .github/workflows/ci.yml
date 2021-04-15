@@ -32,3 +32,22 @@ jobs:
       run: dart pub get
     - name: Run tests
       run: dart test
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Setup environment
+      run: sudo apt install -y dbus-x11 xvfb
+    - name: Install Dart
+      uses: dart-lang/setup-dart@v1
+    - name: Pub get
+      run: dart pub get
+    - name: Measure coverage
+      run: dart run test_cov
+    - name: Upload coverage
+      uses: codecov/codecov-action@v1
+      with:
+        file: coverage/lcov.info
+        token: ${{secrets.CODECOV_TOKEN}}
