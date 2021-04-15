@@ -3,7 +3,6 @@ import 'item.dart';
 class PciParser {
   Iterable<PciItem> parse(Iterable<String> lines) {
     for (final line in lines) {
-      if (line.startsWith('C')) break;
       final trimmed = line.removeComment();
       if (trimmed.isNotEmpty) {
         final item = _parseLine(trimmed);
