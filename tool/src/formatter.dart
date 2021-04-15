@@ -61,6 +61,65 @@ extension PciSubsystemFormatter on PciSubsystem {
   }
 }
 
+extension PciDeviceClassFormatter on PciDeviceClass {
+  String formatKey() => '_device_class_${id.toHex()}';
+
+  String formatValue() {
+    final i = id.print();
+    final n = name.print();
+    final s = subclasses.map((subclass) => subclass.formatKey(id)).join(', ');
+    return 'PciDeviceClass(id: $i, name: $n, subclasses: <PciSubclass>[$s],)';
+  }
+
+  String formatVariable() => 'const ${formatKey()} = ${formatValue()};';
+
+  String formatMapEntry() => '${id.print()}: ${formatKey()},';
+}
+
+extension PciSubclassFormatter on PciSubclass {
+  String formatKey(int deviceClassId) {
+    final d = deviceClassId.toHex();
+    final i = id.toHex();
+    return '_subclass_${d}_$i';
+  }
+
+  String formatValue(int deviceClassId) {
+    final i = id.print();
+    final n = name.print();
+    final p = programmingInterfaces
+        .map((pi) => pi.formatKey(deviceClassId, id))
+        .join(', ');
+    return 'PciSubclass(id: $i, name: $n, programmingInterfaces: <PciProgrammingInterface>[$p],)';
+  }
+
+  String formatVariable(int deviceClassId) {
+    return 'const ${formatKey(deviceClassId)} = ${formatValue(deviceClassId)};';
+  }
+
+  String formatMapEntry(int deviceClassId) {
+    return '${id.print()}: ${formatKey(deviceClassId)},';
+  }
+}
+
+extension PciProgrammingInterfaceFormatter on PciProgrammingInterface {
+  String formatKey(int deviceClassId, int subclassId) {
+    final d = deviceClassId.toHex();
+    final s = subclassId.toHex();
+    final i = id.toHex();
+    return '_programming_interface_${d}_${s}_$i';
+  }
+
+  String formatValue() {
+    final i = id.print();
+    final n = name.print();
+    return 'PciProgrammingInterface(id: $i, name: $n,)';
+  }
+
+  String formatVariable(int deviceClassId, int subclassId) {
+    return 'const ${formatKey(deviceClassId, subclassId)} = ${formatValue()};';
+  }
+}
+
 extension PciIntFormatter on int {
   String print() => '0x${toHex()}';
   String toHex() => toRadixString(16).padLeft(4, '0');
