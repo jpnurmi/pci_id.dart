@@ -93,6 +93,8 @@ String generateIndex(PciBuilder builder) {
   final lines = <String>[];
   lines.add(generateVendorIndex(builder.vendors));
   lines.add(generateDeviceIndex(builder.vendors));
+  lines.add(generateDeviceClassIndex(builder.deviceClasses));
+  lines.add(generateSubclassIndex(builder.deviceClasses));
   return lines.join('\n');
 }
 
@@ -124,11 +126,39 @@ String generateDeviceIndex(Iterable<PciVendor> vendors) {
       .replaceFirst('{{entries}}', lines.join('\n'));
 }
 
+String generateDeviceClassIndex(Iterable<PciDeviceClass> deviceClasses) {
+  final lines = <String>[];
+  for (final deviceClass in deviceClasses) {
+    lines.add(deviceClass.formatMapEntry());
+  }
+  return kIndexTemplate
+      .replaceFirst('{{type}}', 'PciDeviceClass')
+      .replaceFirst('{{variable}}', '_device_classes')
+      .replaceFirst('{{entries}}', lines.join('\n'));
+}
+
 String generateVariables(PciBuilder builder) {
   final lines = <String>[];
   lines.addAll(generateVendorVariables(builder.vendors));
   lines.addAll(generateDeviceClassVariables(builder.deviceClasses));
   return lines.join('\n');
+}
+
+String generateSubclassIndex(Iterable<PciDeviceClass> deviceClasses) {
+  final lines = <String>[];
+  for (final deviceClass in deviceClasses) {
+    final entries = deviceClass.subclasses.map<String>(
+      (subclass) => subclass.formatMapEntry(deviceClass.id),
+    );
+    lines.add(kEntryTemplate
+        .replaceFirst('{{id}}', deviceClass.id.print())
+        .replaceFirst('{{type}}', 'PciSubclass')
+        .replaceFirst('{{entries}}', entries.join('\n')));
+  }
+  return kIndexTemplate
+      .replaceFirst('{{type}}', 'Map<int, PciSubclass>')
+      .replaceFirst('{{variable}}', '_subclasses')
+      .replaceFirst('{{entries}}', lines.join('\n'));
 }
 
 List<String> generateVendorVariables(Iterable<PciVendor> vendors) {
