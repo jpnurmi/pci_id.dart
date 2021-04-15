@@ -22,3 +22,4 @@
 library pci_id;
 
 export 'src/pci_id.dart';
+export 'src/pci_types.dart';

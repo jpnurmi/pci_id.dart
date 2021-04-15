@@ -2,6 +2,11 @@ import 'package:pci_id/pci_id.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('all vendors', () {
+    final vendors = PciId.allVendors;
+    expect(vendors, hasLength(2237));
+  });
+
   test('lookup vendor', () {
     final vendor = PciId.lookupVendor(0x1ade);
     expect(vendor, isNotNull);
@@ -16,6 +21,11 @@ void main() {
     expect(device!.id, equals(0x3038));
     expect(device.name, equals('PCIe Video Bridge'));
     expect(device.subsystems, hasLength(2));
+  });
+
+  test('all device classes', () {
+    final deviceClasses = PciId.allDeviceClasses;
+    expect(deviceClasses, hasLength(22));
   });
 
   test('lookup device class', () {
