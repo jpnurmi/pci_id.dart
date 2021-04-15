@@ -59,7 +59,7 @@ void main(List<String> args) {
   final outputFile = File(resolveOutputFile(options['output']));
 
   final lines = inputFile.readAsLinesSync();
-  final items = PciParser().parseLines(lines);
+  final items = PciParser().parse(lines);
 
   final output = generateDart(items);
   outputFile.writeAsStringSync(output);
@@ -86,12 +86,12 @@ String resolveOutputFile(String output) {
 }
 
 class PciParser {
-  Iterable<PciItem> parseLines(Iterable<String> lines) {
+  Iterable<PciItem> parse(Iterable<String> lines) {
     for (final line in lines) {
-      if (line.startsWith('C ')) break; // ### TODO: device classes
       final trimmed = line.trimComment();
       if (trimmed.isNotEmpty) {
         final item = _parseLine(trimmed);
+        _type = item.type;
         _items.add(item);
       }
     }
@@ -102,69 +102,97 @@ class PciParser {
     final indentation = line.indexOf(RegExp(r'[^\t]'));
     switch (indentation) {
       case 0:
-        return PciItem.vendor(line.trim());
+        if (line.startsWith('C')) {
+          return PciItem.deviceClass(line.trim());
+        } else {
+          return PciItem.vendor(line.trim());
+        }
       case 1:
-        return PciItem.device(line.trim());
+        if (_type == PciType.deviceClass) {
+          return PciItem.subclass(line.trim());
+        } else {
+          return PciItem.device(line.trim());
+        }
       case 2:
-        return PciItem.subsystem(line.trim());
+        if (_type == PciType.subclass) {
+          return PciItem.programmingInterface(line.trim());
+        } else {
+          return PciItem.subsystem(line.trim());
+        }
       default:
         throw UnsupportedError('Malformed pci.ids');
     }
   }
 
   final _items = <PciItem>[];
+  PciType _type = PciType.device;
 }
 
 String generateDart(Iterable<PciItem> items) {
-  final vendors = buildVendors(items);
+  final builder = PciBuilder.build(items);
   return kOutputTemplate
-      .replaceFirst('{{vendors}}', generateVendorMap(vendors))
-      .replaceFirst('{{devices}}', generateDeviceMap(vendors))
-      .replaceFirst('{{variables}}', generateVariables(vendors));
+      .replaceFirst('{{vendors}}', generateVendorMap(builder.vendors))
+      .replaceFirst('{{devices}}', generateDeviceMap(builder.vendors))
+      .replaceFirst('{{variables}}', generateVariables(builder.vendors));
 }
 
-Iterable<PciVendor> buildVendors(Iterable<PciItem> items) {
-  final vendors = <PciVendor>[];
-  final devices = <PciDevice>[];
-  final subsystems = <PciSubsystem>[];
-  PciItem? currentVendor;
-  PciItem? currentDevice;
+class PciBuilder {
+  static PciBuilder build(Iterable<PciItem> items) {
+    final builder = PciBuilder();
 
-  void addCurrentVendor() {
-    if (currentVendor == null) return;
-    vendors.add(currentVendor!.toVendor(List<PciDevice>.of(devices)));
-    devices.clear();
-    currentVendor = null;
-  }
+    final devices = <PciDevice>[];
+    final subsystems = <PciSubsystem>[];
+    PciItem? currentVendor;
+    PciItem? currentDevice;
 
-  void addCurrentDevice() {
-    if (currentDevice == null) return;
-    devices.add(currentDevice!.toDevice(List<PciSubsystem>.of(subsystems)));
-    subsystems.clear();
-    currentDevice = null;
-  }
-
-  for (final item in items) {
-    switch (item.type) {
-      case PciType.vendor:
-        addCurrentDevice();
-        addCurrentVendor();
-        currentVendor = item;
-        break;
-      case PciType.device:
-        addCurrentDevice();
-        currentDevice = item;
-        break;
-      case PciType.subsystem:
-        subsystems.add(item.toSubsystem());
-        break;
-      default:
-        throw UnsupportedError(item.type.toString());
+    void addCurrentVendor() {
+      if (currentVendor == null) return;
+      builder.vendors.add(currentVendor!.toVendor(List<PciDevice>.of(devices)));
+      devices.clear();
+      currentVendor = null;
     }
+
+    void addCurrentDevice() {
+      if (currentDevice == null) return;
+      devices.add(currentDevice!.toDevice(List<PciSubsystem>.of(subsystems)));
+      subsystems.clear();
+      currentDevice = null;
+    }
+
+    for (final item in items) {
+      switch (item.type) {
+        case PciType.vendor:
+          addCurrentDevice();
+          addCurrentVendor();
+          currentVendor = item;
+          break;
+        case PciType.device:
+          addCurrentDevice();
+          currentDevice = item;
+          break;
+        case PciType.subsystem:
+          subsystems.add(item.toSubsystem());
+          break;
+        case PciType.deviceClass:
+          // ### TODO
+          break;
+        case PciType.subclass:
+          // ### TODO
+          break;
+        case PciType.programmingInterface:
+          // ### TODO
+          break;
+        default:
+          throw UnsupportedError(item.type.toString());
+      }
+    }
+    addCurrentDevice();
+    addCurrentVendor();
+    return builder;
   }
-  addCurrentDevice();
-  addCurrentVendor();
-  return vendors;
+
+  final vendors = <PciVendor>[];
+  final deviceClasses = <PciDeviceClass>[];
 }
 
 String generateVendorMap(Iterable<PciVendor> vendors) {
@@ -232,7 +260,14 @@ extension PciList<T> on List<T> {
   }
 }
 
-enum PciType { vendor, device, subsystem }
+enum PciType {
+  vendor,
+  device,
+  subsystem,
+  deviceClass,
+  subclass,
+  programmingInterface,
+}
 
 class PciItem {
   final String line;
@@ -240,11 +275,10 @@ class PciItem {
 
   PciItem.vendor(this.line) : type = PciType.vendor;
   PciItem.device(this.line) : type = PciType.device;
-  PciItem.subsystem(this.line) : type = PciType.subsystem {
-    if (subid == null) {
-      print(line);
-    }
-  }
+  PciItem.subsystem(this.line) : type = PciType.subsystem;
+  PciItem.deviceClass(this.line) : type = PciType.deviceClass;
+  PciItem.subclass(this.line) : type = PciType.subclass;
+  PciItem.programmingInterface(this.line) : type = PciType.programmingInterface;
 
   int get id => int.parse(ids.first, radix: 16);
   int? get subid => int.tryParse(ids.secondOrNull ?? '', radix: 16);
@@ -263,6 +297,24 @@ class PciItem {
 
   PciSubsystem toSubsystem() {
     return PciSubsystem(vendorId: id, deviceId: subid ?? -1, name: name);
+  }
+
+  PciDeviceClass toDeviceClass(Iterable<PciSubclass> subclasses) {
+    return PciDeviceClass(id: id, name: name, subclasses: subclasses);
+  }
+
+  PciSubclass toSubclass(
+    Iterable<PciProgrammingInterface> programmingInterfaces,
+  ) {
+    return PciSubclass(
+      id: id,
+      name: name,
+      programmingInterfaces: programmingInterfaces,
+    );
+  }
+
+  PciProgrammingInterface toProgrammingInterface() {
+    return PciProgrammingInterface(id: id, name: name);
   }
 }
 

@@ -53,3 +53,55 @@ class PciSubsystem extends Equatable {
   @override
   bool? get stringify => true;
 }
+
+class PciDeviceClass extends Equatable {
+  final int id;
+  final String name;
+  final Iterable<PciSubclass> subclasses;
+
+  PciDeviceClass({
+    required this.id,
+    required this.name,
+    required this.subclasses,
+  });
+
+  @override
+  List<Object?> get props => <Object?>[id, name, subclasses];
+
+  @override
+  bool? get stringify => true;
+}
+
+class PciSubclass extends Equatable {
+  final int id;
+  final String name;
+  final Iterable<PciProgrammingInterface> programmingInterfaces;
+
+  PciSubclass({
+    required this.id,
+    required this.name,
+    required this.programmingInterfaces,
+  });
+
+  @override
+  List<Object?> get props => <Object?>[id, name, programmingInterfaces];
+
+  @override
+  bool? get stringify => true;
+}
+
+class PciProgrammingInterface extends Equatable {
+  final int id;
+  final String name;
+
+  PciProgrammingInterface({
+    required this.id,
+    required this.name,
+  });
+
+  @override
+  List<Object?> get props => <Object?>[id, name];
+
+  @override
+  bool? get stringify => true;
+}
