@@ -2,6 +2,7 @@
 
 [![pub](https://img.shields.io/pub/v/pci_id.svg)](https://pub.dev/packages/pci_id)
 [![license: BSD](https://img.shields.io/badge/license-BSD-yellow.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![style: lint](https://img.shields.io/badge/style-lint-4BC0F5.svg)](https://pub.dev/packages/lint)
 ![CI](https://github.com/jpnurmi/pci_id.dart/workflows/CI/badge.svg)
 
 A repository of all known ID's used in PCI devices: ID's of vendors,

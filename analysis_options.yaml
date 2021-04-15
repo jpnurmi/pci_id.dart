@@ -1,4 +1,9 @@
-include: package:pedantic/analysis_options.yaml
+include: package:lint/analysis_options_package.yaml
 
 analyzer:
-  exclude: [lib/src/pci_id.g.dart]
+  exclude: [lib/src/*.g.dart, example/**, test/**]
+
+linter:
+  rules:
+    avoid_classes_with_only_static_members: false
+    avoid_escaping_inner_quotes: false

@@ -18,7 +18,7 @@ class PciId {
     return _device_classes[id];
   }
 
-  static PciSubclass? lookupSubclass(int id, {required deviceClassId}) {
+  static PciSubclass? lookupSubclass(int id, {required int deviceClassId}) {
     return _subclasses[deviceClassId]?[id];
   }
 }

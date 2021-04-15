@@ -1,11 +1,9 @@
 import 'item.dart';
 
 class PciBuilder {
-  static PciBuilder build(Iterable<PciItem> items) {
-    final builder = PciBuilder();
-    builder.buildVendors(items);
-    builder.buildDeviceClasses(items);
-    return builder;
+  PciBuilder.build(Iterable<PciItem> items) {
+    buildVendors(items);
+    buildDeviceClasses(items);
   }
 
   void buildVendors(Iterable<PciItem> items) {

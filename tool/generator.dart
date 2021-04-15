@@ -31,6 +31,8 @@ part of 'pci_id.dart';
 {{index}}
 ''';
 
+// ignore_for_file: avoid_print
+
 void main(List<String> args) {
   final parser = ArgParser();
   parser.addOption(
@@ -53,7 +55,7 @@ void main(List<String> args) {
     exit(-1);
   }
 
-  final outputFile = File(resolveOutputFile(options['output']));
+  final outputFile = File(resolveOutputFile(options['output'] as String));
 
   final lines = inputFile.readAsLinesSync();
   final items = PciParser().parse(lines);
