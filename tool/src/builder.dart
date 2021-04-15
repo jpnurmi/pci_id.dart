@@ -3,7 +3,12 @@ import 'item.dart';
 class PciBuilder {
   static PciBuilder build(Iterable<PciItem> items) {
     final builder = PciBuilder();
+    builder.buildVendors(items);
+    builder.buildDeviceClasses(items);
+    return builder;
+  }
 
+  void buildVendors(Iterable<PciItem> items) {
     final devices = <PciDevice>[];
     final subsystems = <PciSubsystem>[];
 
@@ -12,7 +17,7 @@ class PciBuilder {
     void popVendor() {
       if (vendorStack.isEmpty) return;
       final item = vendorStack.removeLast();
-      builder.vendors.add(item.toVendor(List<PciDevice>.of(devices)));
+      vendors.add(item.toVendor(List<PciDevice>.of(devices)));
       devices.clear();
     }
 
@@ -39,22 +44,57 @@ class PciBuilder {
         case PciType.subsystem:
           subsystems.add(item.toSubsystem());
           break;
-        case PciType.deviceClass:
-          // ### TODO
-          break;
-        case PciType.subclass:
-          // ### TODO
-          break;
-        case PciType.programmingInterface:
-          // ### TODO
-          break;
         default:
-          throw UnsupportedError(item.type.toString());
+          break;
       }
     }
     popDevice();
     popVendor();
-    return builder;
+  }
+
+  void buildDeviceClasses(Iterable<PciItem> items) {
+    final subclasses = <PciSubclass>[];
+    final programmingInterfaces = <PciProgrammingInterface>[];
+
+    final deviceClassStack = <PciItem>[];
+    void pushDeviceClass(PciItem item) => deviceClassStack.add(item);
+    void popDeviceClass() {
+      if (deviceClassStack.isEmpty) return;
+      final item = deviceClassStack.removeLast();
+      deviceClasses.add(item.toDeviceClass(List<PciSubclass>.of(subclasses)));
+      subclasses.clear();
+    }
+
+    final subclassStack = <PciItem>[];
+    void pushSubclass(PciItem item) => subclassStack.add(item);
+    void popSubclass() {
+      if (subclassStack.isEmpty) return;
+      final item = subclassStack.removeLast();
+      subclasses.add(item
+          .toSubclass(List<PciProgrammingInterface>.of(programmingInterfaces)));
+      programmingInterfaces.clear();
+    }
+
+    for (final item in items) {
+      switch (item.type) {
+        case PciType.deviceClass:
+          popSubclass();
+          popDeviceClass();
+          pushDeviceClass(item);
+          break;
+        case PciType.subclass:
+          popSubclass();
+          pushSubclass(item);
+          break;
+        case PciType.programmingInterface:
+          programmingInterfaces.add(item.toProgrammingInterface());
+          break;
+        default:
+          break;
+      }
+    }
+    popSubclass();
+    popDeviceClass();
   }
 
   final vendors = <PciVendor>[];
